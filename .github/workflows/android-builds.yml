@@ -17,7 +17,7 @@ concurrency:
 jobs:
   linux-editor:
     runs-on: "ubuntu-20.04"
-    name: 
+    name: Editor
     
 
   strategy:

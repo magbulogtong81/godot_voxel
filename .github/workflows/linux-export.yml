@@ -24,7 +24,7 @@ jobs:
       matrix:
         include:
 
-        - name: release-32bit-x86
+          - name: release-32bit-x86
             target: release
             arch: x86_32
             executable_name: linux_x11_32_debug
