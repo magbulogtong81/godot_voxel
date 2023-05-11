@@ -28,61 +28,73 @@ jobs:
               target: release
               arch: armv7
               executable_name: android_release.apk
+              tools: no
               
             - name: android-64bit-release-arm64
               target: release
               arch: arm64v8
               executable_name: android_release.apk
+              tools: no
               
             - name: android-32bit-debug-arm
               target: release_debug
               arch: armv7
               executable_name: android_debug.apk
+              tools: no
               
             - name: android-64bit-debug-arm64
               target: release_debug
               arch: arm64v8
               executable_name: android_debug.apk
+              tools: no
               
             - name: android-32bit-debug-x86
               target: release_debug
               arch: x86
               executable_name: android_debug.apk
+              tools: no
               
             - name: android-64bit-debug-x86_64
               target: release_debug
               arch: x86_64
               executable_name: android_debug.apk
+              tools: no
               
             - name: android-32bit-release-x86
               target: release
               arch: x86
               executable_name: android_release.apk
+              tools: no
               
             - name: android-64bit-release-x86_64
               target: release
               arch: x86_64
               executable_name: android_release.apk
+              tools: no
             ####EDITOR####
             - name: android-64bit-editor-x86_64
-              target: editor
+              target: release
               arch: x86_64
               executable_name: android_editor.apk
+              tools: yes
               
             - name: android-32bit-editor-x86
-              target: editor
+              target: release
               arch: x86
               executable_name: android_editor.apk
+              tools: yes
               
             - name: android-32bit-editor-arm
-              target: editor
+              target: release
               arch: armv7
               executable_name: android_editor.apk
+              tools: yes
               
             - name: android-32bit-editor-arm64
-              target: editor
+              target: release
               arch: arm64v8
               executable_name: android_editor.apk
+              tools: yes
 
 
 
@@ -140,12 +152,19 @@ jobs:
           python --version
           scons --version
 
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 11
+
       # We should always be explicit with our flags usage here since it's gonna be sure to always set those flags
       - name: Compilation
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons -j2 verbose=yes warnings=all platform=android target=${{matrix.target}} arch=${{matrix.arch}}
+          scons -j2 verbose=yes warnings=all platform=android target=${{matrix.target}} arch=${{matrix.arch}} tools=${{matrix.tools}}
 
       # TODO Such tests are able to run from Godot 4.0 only
       # Execute unit tests for the editor
@@ -157,5 +176,5 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: ${{matrix.executable_name}}-${{matrix.target}}-${{matrix.arch}}
-          path: bin/${{matrix.executable_name}}
+          path: bin/*
 

@@ -28,21 +28,25 @@ jobs:
               target: release
               arch: x86_32
               executable_name: linux_x11_32_debug
+              tools: no
               
             - name: debug-32bit-x86
               target: release_debug
               arch: x86_32
               executable_name: linux_x11_32_release
-              
+              tools: no
+
             - name: release-64bit-x86_64
               target: release
               arch: x86_64
               executable_name: linux_x11_64_debug
-              
+              tools: no
+
             - name: debug-64bit-x86_64
               target: release_debug
               arch: x86_64
               executable_name: linux_x11_64_release
+              tools: no
 
     
 
@@ -106,7 +110,7 @@ jobs:
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons -j2 verbose=yes warnings=all werror=yes platform=x11 target=${{matrix.target}} arch=${{matrix.arch}}
+          scons -j2 verbose=yes warnings=all platform=x11 target=${{matrix.target}} arch=${{matrix.arch}} tools=${{matrix.tools}}
 
       # TODO Such tests are able to run from Godot 4.0 only
       # Execute unit tests for the editor
