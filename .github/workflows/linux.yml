@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   linux-editor:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-22.04"
     name: Editor
 
     steps:
@@ -43,8 +43,7 @@ jobs:
         run: |
           sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
             libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm
-            libglib2.0-0=2.24.0-0ubuntu4 -y
-          sudo apt-get install libglib2.0-dev -y
+            
 
       # Upload cache on completion and check it out now
       - name: Load .scons_cache directory
