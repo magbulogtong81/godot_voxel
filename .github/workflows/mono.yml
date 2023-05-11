@@ -12,6 +12,10 @@ env:
   SCONS_CACHE_LIMIT: 4096
   MONO_BCL_RELEASE_TAG: release-c3a9d31
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   mono-glue:
     runs-on: "ubuntu-20.04"
