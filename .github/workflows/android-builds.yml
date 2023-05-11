@@ -1,4 +1,4 @@
-name:  Android Builds
+name:  android Builds
 on:
   push:
     branches: [ godot3.x, github_actions ]
@@ -17,7 +17,7 @@ concurrency:
 jobs:
   linux-editor:
     runs-on: "ubuntu-22.04"
-    name: Editor
+    name: android
     
 
     strategy:
@@ -73,25 +73,25 @@ jobs:
               tools: no
             ####EDITOR####
             - name: android-64bit-editor-x86_64
-              target: release
+              target: release_debug
               arch: x86_64
               executable_name: android_editor.apk
               tools: yes
               
             - name: android-32bit-editor-x86
-              target: release
+              target: release_debug
               arch: x86
               executable_name: android_editor.apk
               tools: yes
               
             - name: android-32bit-editor-arm
-              target: release
+              target: release_debug
               arch: armv7
               executable_name: android_editor.apk
               tools: yes
               
             - name: android-32bit-editor-arm64
-              target: release
+              target: release_debug
               arch: arm64v8
               executable_name: android_editor.apk
               tools: yes
