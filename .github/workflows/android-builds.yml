@@ -20,69 +20,69 @@ jobs:
     name: Editor
     
 
-  strategy:
-      matrix:
-        include:
-        ####TEPMPLATES####
-          - name: android-32bit-release-arm
-            target: release
-            arch: armv7
-            executable_name: android_release.apk
-            
-          - name: android-64bit-release-arm64
-            target: release
-            arch: arm64v8
-            executable_name: android_release.apk
-            
-          - name: android-32bit-debug-arm
-            target: release_debug
-            arch: armv7
-            executable_name: android_debug.apk
-            
-          - name: android-64bit-debug-arm64
-            target: release_debug
-            arch: arm64v8
-            executable_name: android_debug.apk
-            
-          - name: android-32bit-debug-x86
-            target: release_debug
-            arch: x86
-            executable_name: android_debug.apk
-            
-          - name: android-64bit-debug-x86_64
-            target: release_debug
-            arch: x86_64
-            executable_name: android_debug.apk
-            
-          - name: android-32bit-release-x86
-            target: release
-            arch: x86
-            executable_name: android_release.apk
-            
-          - name: android-64bit-release-x86_64
-            target: release
-            arch: x86_64
-            executable_name: android_release.apk
-          ####EDITOR####
-          - name: android-64bit-editor-x86_64
-            target: editor
-            arch: x86_64
-            executable_name: android_editor.apk
-            
-          - name: android-32bit-editor-x86
-            target: editor
-            arch: x86
-            executable_name: android_editor.apk
-            
-          - name: android-32bit-editor-arm
-            target: editor
-            arch: armv7
-            executable_name: android_editor.apk
-            
-          - name: android-32bit-editor-arm64
-            target: editor
-            arch: arm64v8
-            executable_name: android_editor.apk
+    strategy:
+        matrix:
+          include:
+          ####TEPMPLATES####
+            - name: android-32bit-release-arm
+              target: release
+              arch: armv7
+              executable_name: android_release.apk
+              
+            - name: android-64bit-release-arm64
+              target: release
+              arch: arm64v8
+              executable_name: android_release.apk
+              
+            - name: android-32bit-debug-arm
+              target: release_debug
+              arch: armv7
+              executable_name: android_debug.apk
+              
+            - name: android-64bit-debug-arm64
+              target: release_debug
+              arch: arm64v8
+              executable_name: android_debug.apk
+              
+            - name: android-32bit-debug-x86
+              target: release_debug
+              arch: x86
+              executable_name: android_debug.apk
+              
+            - name: android-64bit-debug-x86_64
+              target: release_debug
+              arch: x86_64
+              executable_name: android_debug.apk
+              
+            - name: android-32bit-release-x86
+              target: release
+              arch: x86
+              executable_name: android_release.apk
+              
+            - name: android-64bit-release-x86_64
+              target: release
+              arch: x86_64
+              executable_name: android_release.apk
+            ####EDITOR####
+            - name: android-64bit-editor-x86_64
+              target: editor
+              arch: x86_64
+              executable_name: android_editor.apk
+              
+            - name: android-32bit-editor-x86
+              target: editor
+              arch: x86
+              executable_name: android_editor.apk
+              
+            - name: android-32bit-editor-arm
+              target: editor
+              arch: armv7
+              executable_name: android_editor.apk
+              
+            - name: android-32bit-editor-arm64
+              target: editor
+              arch: arm64v8
+              executable_name: android_editor.apk
 
 
 
@@ -109,7 +109,9 @@ jobs:
       - name: Configure dependencies
         run: |
           sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
-            libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm
+            libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm \
+            libglib2.0-0=2.24.0-0ubuntu4 -y
+          sudo apt-get install libglib2.0- -y
 
       # Upload cache on completion and check it out now
       - name: Load .scons_cache directory

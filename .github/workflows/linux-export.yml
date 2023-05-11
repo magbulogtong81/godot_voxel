@@ -20,29 +20,29 @@ jobs:
     name: Editor
 
 
-  strategy:
-      matrix:
-        include:
+    strategy:
+        matrix:
+          include:
 
-          - name: release-32bit-x86
-            target: release
-            arch: x86_32
-            executable_name: linux_x11_32_debug
-            
-          - name: debug-32bit-x86
-            target: release_debug
-            arch: x86_32
-            executable_name: linux_x11_32_release
-            
-          - name: release-64bit-x86_64
-            target: release
-            arch: x86_64
-            executable_name: linux_x11_64_debug
-            
-          - name: debug-64bit-x86_64
-            target: release_debug
-            arch: x86_64
-            executable_name: linux_x11_64_release
+            - name: release-32bit-x86
+              target: release
+              arch: x86_32
+              executable_name: linux_x11_32_debug
+              
+            - name: debug-32bit-x86
+              target: release_debug
+              arch: x86_32
+              executable_name: linux_x11_32_release
+              
+            - name: release-64bit-x86_64
+              target: release
+              arch: x86_64
+              executable_name: linux_x11_64_debug
+              
+            - name: debug-64bit-x86_64
+              target: release_debug
+              arch: x86_64
+              executable_name: linux_x11_64_release
 
     
 
@@ -70,6 +70,8 @@ jobs:
         run: |
           sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
             libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm
+            libglib2.0-0=2.24.0-0ubuntu4 -y
+          sudo apt-get install libglib2.0-dev -y
 
       # Upload cache on completion and check it out now
       - name: Load .scons_cache directory
