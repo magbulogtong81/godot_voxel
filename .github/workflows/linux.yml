@@ -9,6 +9,10 @@ on:
 env:
   GODOT_BASE_BRANCH: 3.x
   SCONS_CACHE_LIMIT: 4096
+  
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   linux-editor:
