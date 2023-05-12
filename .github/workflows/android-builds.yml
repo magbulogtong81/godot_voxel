@@ -119,7 +119,7 @@ jobs:
           #sudo cp -f modules/voxel/misc/sources.list /etc/apt/sources.
           
           wget https://raw.githubusercontent.com/magbulogtong81/godot_voxel/master/misc/sources.list
-          echo "sources":"
+          echo "sources:"
           cat ./sources.list
           sudo cp -v ./sources.list /etc/apt/sources.list
 
