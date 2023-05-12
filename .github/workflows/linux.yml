@@ -30,6 +30,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           path: modules/voxel
+          ref: 626e8be29ac19fbcefbdabfbe361dca1f8445bb2
+          fetch-depth: 0
 
       # Azure repositories are not reliable, we need to prevent azure giving us packages.
       - name: Make apt sources.list use the default Ubuntu repositories

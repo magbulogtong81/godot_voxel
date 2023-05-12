@@ -32,14 +32,16 @@ jobs:
       # Clone our module under the correct directory
       - uses: actions/checkout@v2
         with:
-          ref: ${{ env.VOXEL_BASE_BRANCH }}
+          #ref: ${{ env.VOXEL_BASE_BRANCH }}
           path: godot/modules/voxel
+          ref: 626e8be29ac19fbcefbdabfbe361dca1f8445bb2
+          fetch-depth: 0
 
       # Azure repositories are not reliable, we need to prevent azure giving us packages.
       - name: Make apt sources.list use the default Ubuntu repositories
         run: |
           sudo rm -f /etc/apt/sources.list.d/*
-          sudo cp -f modules/voxel/misc/sources.list /etc/apt/sources.list
+          sudo cp -f godot/modules/voxel/misc/sources.list /etc/apt/sources.list
           sudo apt-get update
       # Install all packages (except scons)
       - name: Configure dependencies
