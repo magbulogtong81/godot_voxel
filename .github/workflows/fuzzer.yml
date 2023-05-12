@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   test-project:
-    runs-on: "ubuntu-22.04"
+    runs-on: "ubuntu-20.04"
     name: Editor
 
     steps:
