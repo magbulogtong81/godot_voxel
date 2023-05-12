@@ -125,16 +125,16 @@ jobs:
 
 
       # Upload cache on completion and check it out now
-      - name: Load .scons_cache directory
-        id: linux-editor-cache
-        uses: actions/cache@v2
-        with:
-          path: ${{github.workspace}}/.scons_cache/
-          key: ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}-${{matrix.target}}-${{matrix.arch}}
-          restore-keys: |
-            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}-${{matrix.target}}-${{matrix.arch}}
-            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
-            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
+      # - name: Load .scons_cache directory
+      #   id: linux-editor-cache
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ${{github.workspace}}/.scons_cache/
+      #     key: ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}-${{matrix.target}}-${{matrix.arch}}
+      #     restore-keys: |
+      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}-${{matrix.target}}-${{matrix.arch}}
+      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
+      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
 
       # Use python 3.x release (works cross platform; best to keep self contained in it's own step)
       - name: Set up Python 3.x
