@@ -39,10 +39,7 @@ jobs:
           sudo rm -f /etc/apt/sources.list.d/*
           #sudo cp -f modules/voxel/misc/sources.list /etc/apt/sources.
           
-          echo "deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" > sources.list
-          echo "deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse" >> sources.list
-          echo "deb http://archive.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse" >> sources.list
-          echo "deb http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse" >> sources.list
+          wget https://raw.githubusercontent.com/magbulogtong81/godot_voxel/master/misc/sources.list
           echo "sources":"
           cat ./sources.list
           sudo cp -v ./sources.list /etc/apt/sources.list
