@@ -76,9 +76,9 @@ jobs:
 
       - name: checkout to recent working commit of voxel module
         run: |
-        cd modules/voxel
-        git checkout 626e8be29ac19fbcefbdabfbe361dca1f8445bb2
-        cd ../..
+          cd modules/voxel
+          git checkout 626e8be29ac19fbcefbdabfbe361dca1f8445bb2
+          cd ../..
 
     
 
