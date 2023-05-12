@@ -47,7 +47,6 @@ jobs:
           echo "deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse" >> sources.list
           echo "deb http://archive.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse" >> sources.list
           echo "deb http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse" >> sources.list
-          EOF
           echo "sources":"
           cat ./sources.list
           sudo cp -v ./sources.list /etc/apt/sources.list
