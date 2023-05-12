@@ -76,16 +76,16 @@ jobs:
             libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm -y 
 
       # Upload cache on completion and check it out now
-      # - name: Load .scons_cache directory
-      #   id: linux-editor-cache
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: ${{github.workspace}}/.scons_cache/
-      #     key: ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}-${{matrix.target}}-${{matrix.arch}}
-      #     restore-keys: |
-      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}-${{matrix.target}}-${{matrix.arch}}
-      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
-      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
+      - name: Load .scons_cache directory
+        id: linux-editor-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{github.workspace}}/.scons_cache/
+          key: ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}-${{matrix.target}}-${{matrix.arch}}
+          restore-keys: |
+            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}-${{matrix.target}}-${{matrix.arch}}
+            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
+            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
 
       # Use python 3.x release (works cross platform; best to keep self contained in it's own step)
       - name: Set up Python 3.x
@@ -102,7 +102,16 @@ jobs:
           python -c "import sys; print(sys.version)"
           python -m pip install scons
           python --version
-          scons --version
+          scons --
+          
+
+      - name: checkout to recent working commit of voxel module
+        run: |
+        cd modules/voxel
+        git checkout 626e8be29ac19fbcefbdabfbe361dca1f8445bb2
+        cd ../..
+
+
 
       # We should always be explicit with our flags usage here since it's gonna be sure to always set those flags
       - name: Compilation

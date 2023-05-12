@@ -272,16 +272,18 @@ jobs:
           sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     
       # Upload cache on completion and check it out now
-      # - name: Load .scons_cache directory
-      #   id: mono-glue-cache
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: ${{github.workspace}}/.scons_cache/
-      #     key: ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}
-      #     restore-keys: |
-      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}
-      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
-      #       ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
+      - name: Load .scons_cache directory
+        id: mono-glue-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{github.workspace}}/.scons_cache/
+          key: ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}
+          restore-keys: |
+            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}
+            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
+            ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
+
+
       # Use python 3.x release (works cross platform; best to keep self contained in it's own step)
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
@@ -304,6 +306,15 @@ jobs:
         with:
           name: mono-glue
           path: godot/modules/mono/glue
+
+
+      - name: checkout to recent working commit of voxel module
+        run: |
+        cd modules/voxel
+        git checkout 626e8be29ac19fbcefbdabfbe361dca1f8445bb2
+        cd ../..
+
+    
 
       # We should always be explicit with our flags usage here since it's gonna be sure to always set those flags
       - name: Compile Godot (module_mono_enabled=yes mono_glue=yes)
