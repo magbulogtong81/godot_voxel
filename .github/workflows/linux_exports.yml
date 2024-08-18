@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           repository: godotengine/godot
-          ref: ${{env.GODOT_CPP_PATH}}
+          ref: ${{env.GODOT_BASE_BRANCH}}
 
 
       # Clone our module under the correct directory
