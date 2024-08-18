@@ -98,7 +98,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           repository: godotengine/godot
-          ref: "4.1"
+          ref: ${{env.GODOT_CPP_PATH}}
+          
 
       # Clone our module under the correct directory
       - uses: actions/checkout@v2
