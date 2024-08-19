@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         include:
-        ####TEPMPLATES####
+        ####TEPMPLATES#####
           - name: Release build arm
             target: template_release
             arch: arm32
@@ -172,29 +172,16 @@ jobs:
       #     scons --version
 
       # We should always be explicit with our flags usage here since it's gonna be sure to always set those flags
+      #building for Android was changed for godot  4.3
+      #refer to https://docs.godotengine.org/en/stable/contributing/development/compiling/compiling_for_android.html
       - name: Compilation
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
           PATH=${GITHUB_WORKSPACE}/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH
-          scons -j2 verbose=yes warnings=extra platform=android target=${{matrix.target}} arch=${{matrix.arch}}
-      - name: gradle build
-        env:
-          TARGET: ${{matrix.target}}
-        run: |
-          PATH=${GITHUB_WORKSPACE}/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH
-          cd platform/android/java
-          
-          #seperate the gradle workflow for editor and templates
-          if [ "$TARGET" == "editor" ]
-          then
-            echo "gradle build for $TARGET"
-            ./gradlew generateGodotEditor
-          else
-            echo "gradle build for $TARGET"
-            ./gradlew generateGodotTemplates
-          fi
-      
+          scons -j2 verbose=yes warnings=extra platform=android target=${{matrix.target}} arch=${{matrix.arch}} generate_apk=yes
+
+            
       # Make build available
       #I'm not sure what is the file name after the build, so include all files instead. this will upload 2 files (apk and aab)
       - uses: actions/upload-artifact@v2
