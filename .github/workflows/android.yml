@@ -181,6 +181,28 @@ jobs:
           PATH=${GITHUB_WORKSPACE}/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH
           scons -j2 verbose=yes warnings=extra platform=android target=${{matrix.target}} arch=${{matrix.arch}} generate_apk=yes
 
+          
+      - name: gradle build
+        env:
+          TARGET: ${{matrix.target}}
+        run: |
+          PATH=${GITHUB_WORKSPACE}/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH
+          cd platform/android/java
+          
+          #seperate the gradle workflow for editor and templates
+          if [ "$TARGET" == "editor" ]
+          then
+            echo "gradle build for $TARGET"
+            ./gradlew generateGodotEditor
+            echo "./bin files:"
+            ls -lsh ../../../bin/
+          else
+            echo "gradle build for $TARGET"
+            ./gradlew generateGodotTemplates
+            echo "./bin files:"
+            ls -lsh ../../../bin/
+          fi
+
             
       # Make build available
       #I'm not sure what is the file name after the build, so include all files instead. this will upload 2 files (apk and aab)
