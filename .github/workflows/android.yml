@@ -206,7 +206,7 @@ jobs:
             
       # Make build available
       #I'm not sure what is the file name after the build, so include all files instead. this will upload 2 files (apk and aab)
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.executable_name}}-${{matrix.target}}-${{matrix.arch}}
           path: bin/*
