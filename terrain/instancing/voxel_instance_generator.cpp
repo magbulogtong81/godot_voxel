@@ -9,6 +9,10 @@
 #include "../../util/math/triangle.h"
 #include "../../util/profiling.h"
 
+#if defined(_MSC_VER)
+#pragma warning(disable : 4701) // Potentially uninitialized local variable used.
+#endif
+
 namespace zylann::voxel {
 
 namespace {
@@ -26,6 +30,7 @@ void VoxelInstanceGenerator::generate_transforms(
 		// TODO `lod_index` has become unused, remove?
 		int lod_index,
 		int layer_id,
+		// TODO Provide arrays or offset to ignore transition meshes (transvoxel)
 		Array surface_arrays,
 		UpMode up_mode,
 		uint8_t octant_mask,
@@ -67,8 +72,7 @@ void VoxelInstanceGenerator::generate_transforms(
 
 	out_transforms.clear();
 
-	// TODO This part might be moved to the meshing thread if it turns out to be too heavy
-
+	// TODO Candidates for temp allocator
 	static thread_local StdVector<Vector3f> g_vertex_cache;
 	static thread_local StdVector<Vector3f> g_normal_cache;
 	static thread_local StdVector<float> g_noise_cache;
@@ -178,8 +182,12 @@ void VoxelInstanceGenerator::generate_transforms(
 				// This is roughly the size of one voxel's triangle
 				// const float unit_area = 0.5f * squared(block_size / 32.f);
 
-				float accumulator = 0.f;
+				float area_accumulator = 0.f;
+				// Here density means "instances per space unit squared".
+				// So inverse density means "units squared per instance"
 				const float inv_density = 1.f / _density;
+
+				const float triangle_area_threshold = math::squared(1 << lod_index) * _triangle_area_threshold_lod0;
 
 				for (int triangle_index = 0; triangle_index < triangle_count; ++triangle_index) {
 					const uint32_t ii = triangle_index * 3;
@@ -188,18 +196,22 @@ void VoxelInstanceGenerator::generate_transforms(
 					const int ib = indices[ii + 1];
 					const int ic = indices[ii + 2];
 
-					const Vector3 &pa = vertices[ia];
-					const Vector3 &pb = vertices[ib];
-					const Vector3 &pc = vertices[ic];
-
-					const Vector3 &na = normals[ia];
-					const Vector3 &nb = normals[ib];
-					const Vector3 &nc = normals[ic];
+					const Vector3f &pa = to_vec3f(vertices[ia]);
+					const Vector3f &pb = to_vec3f(vertices[ib]);
+					const Vector3f &pc = to_vec3f(vertices[ic]);
 
 					const float triangle_area = math::get_triangle_area(pa, pb, pc);
-					accumulator += triangle_area;
+					if (triangle_area <= triangle_area_threshold) {
+						continue;
+					}
 
-					const int count_in_triangle = int(accumulator * _density);
+					const Vector3f &na = to_vec3f(normals[ia]);
+					const Vector3f &nb = to_vec3f(normals[ib]);
+					const Vector3f &nc = to_vec3f(normals[ic]);
+
+					area_accumulator += triangle_area;
+
+					const int count_in_triangle = int(area_accumulator * _density);
 
 					for (int i = 0; i < count_in_triangle; ++i) {
 						const float t0 = pcg1.randf();
@@ -209,16 +221,74 @@ void VoxelInstanceGenerator::generate_transforms(
 						// const Vector3 p = pa.linear_interpolate(pb, t0).linear_interpolate(pc, 1.f - sqrt(t1));
 
 						// This is an approximation
-						const Vector3 p = pa.lerp(pb, t0).lerp(pc, t1);
-						const Vector3 n = na.lerp(nb, t0).lerp(nc, t1);
+						const Vector3f rp = math::lerp(math::lerp(pa, pb, t0), pc, t1);
+						const Vector3f rn = math::lerp(math::lerp(na, nb, t0), nc, t1);
 
-						vertex_cache.push_back(to_vec3f(p));
-						normal_cache.push_back(to_vec3f(n));
+						vertex_cache.push_back(rp);
+						normal_cache.push_back(rn);
 					}
 
-					accumulator -= count_in_triangle * inv_density;
+					area_accumulator -= count_in_triangle * inv_density;
 				}
 
+			} break;
+
+			case EMIT_ONE_PER_TRIANGLE: {
+				// Density has no effect here.
+
+				const int triangle_count = indices.size() / 3;
+				const float one_third = 1.f / 3.f;
+				const float triangle_area_threshold = math::squared(1 << lod_index) * _triangle_area_threshold_lod0;
+
+				vertex_cache.reserve(triangle_count);
+				normal_cache.reserve(triangle_count);
+
+				for (int triangle_index = 0; triangle_index < triangle_count; ++triangle_index) {
+					const uint32_t ii = triangle_index * 3;
+
+					const int ia = indices[ii];
+					const int ib = indices[ii + 1];
+					const int ic = indices[ii + 2];
+
+					const Vector3f &pa = to_vec3f(vertices[ia]);
+					const Vector3f &pb = to_vec3f(vertices[ib]);
+					const Vector3f &pc = to_vec3f(vertices[ic]);
+
+					if (triangle_area_threshold > 0.f) {
+						const float triangle_area = math::get_triangle_area(pa, pb, pc);
+						if (triangle_area < triangle_area_threshold) {
+							continue;
+						}
+					}
+
+					const Vector3f &na = to_vec3f(normals[ia]);
+					const Vector3f &nb = to_vec3f(normals[ib]);
+					const Vector3f &nc = to_vec3f(normals[ic]);
+
+					const Vector3f cp = (pa + pb + pc) * one_third;
+					const Vector3f cn = (na + nb + nc) * one_third;
+
+					if (_jitter == 0.f) {
+						vertex_cache.push_back(to_vec3f(cp));
+						normal_cache.push_back(to_vec3f(cn));
+
+					} else {
+						const float t0 = pcg1.randf();
+						const float t1 = pcg1.randf();
+
+						// This formula gives pretty uniform distribution but involves a square root
+						// const Vector3 p = pa.linear_interpolate(pb, t0).linear_interpolate(pc, 1.f - sqrt(t1));
+						// This is an approximation
+						const Vector3f rp = math::lerp(math::lerp(pa, pb, t0), pc, t1);
+						const Vector3f rn = math::lerp(math::lerp(na, nb, t0), nc, t1);
+
+						const Vector3f p = math::lerp(cp, rp, _jitter);
+						const Vector3f n = math::lerp(cn, rn, _jitter);
+
+						vertex_cache.push_back(p);
+						normal_cache.push_back(n);
+					}
+				}
 			} break;
 
 			default:
@@ -603,10 +673,37 @@ void VoxelInstanceGenerator::set_emit_mode(EmitMode mode) {
 	}
 	_emit_mode = mode;
 	emit_changed();
+	notify_property_list_changed();
 }
 
 VoxelInstanceGenerator::EmitMode VoxelInstanceGenerator::get_emit_mode() const {
 	return _emit_mode;
+}
+
+void VoxelInstanceGenerator::set_jitter(const float p_jitter) {
+	const float jitter = math::clamp(p_jitter, 0.f, 1.f);
+	if (jitter == _jitter) {
+		return;
+	}
+	_jitter = jitter;
+	emit_changed();
+}
+
+float VoxelInstanceGenerator::get_jitter() const {
+	return _jitter;
+}
+
+void VoxelInstanceGenerator::set_triangle_area_threshold(const float p_threshold) {
+	const float threshold = math::max(p_threshold, 0.f);
+	if (threshold == _triangle_area_threshold_lod0) {
+		return;
+	}
+	_triangle_area_threshold_lod0 = threshold;
+	emit_changed();
+}
+
+float VoxelInstanceGenerator::get_triangle_area_threshold() const {
+	return _triangle_area_threshold_lod0;
 }
 
 void VoxelInstanceGenerator::set_min_scale(float min_scale) {
@@ -769,6 +866,7 @@ void VoxelInstanceGenerator::set_noise(Ref<Noise> noise) {
 	}
 	// Emit signal outside of the locked region to avoid eventual deadlocks if handlers want to access the property
 	emit_changed();
+	notify_property_list_changed();
 }
 
 Ref<Noise> VoxelInstanceGenerator::get_noise() const {
@@ -812,6 +910,7 @@ void VoxelInstanceGenerator::set_noise_graph(Ref<pg::VoxelGraphFunction> func) {
 	}
 	// Emit signal outside of the locked region to avoid eventual deadlocks if handlers want to access the property
 	emit_changed();
+	notify_property_list_changed();
 }
 
 Ref<pg::VoxelGraphFunction> VoxelInstanceGenerator::get_noise_graph() const {
@@ -878,78 +977,132 @@ void VoxelInstanceGenerator::get_configuration_warnings(PackedStringArray &warni
 	}
 }
 
+void VoxelInstanceGenerator::_validate_property(PropertyInfo &p_property) const {
+	// In core, `PropertyInfo.name` is a String so `operator == "literal"` works.
+	// But in GodotCpp, it is a StringName, which does not have such operator.
+	// So I had to use StringNames to make the code compile in both scenarios without hurting performance.
+	const VoxelStringNames &sn = VoxelStringNames::get_singleton();
+
+	if (p_property.name == sn.jitter) {
+		if (_emit_mode != EMIT_ONE_PER_TRIANGLE) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+		}
+		return;
+	}
+
+	if (p_property.name == sn.triangle_area_threshold) {
+		if (_emit_mode != EMIT_FROM_FACES && _emit_mode != EMIT_ONE_PER_TRIANGLE) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+		}
+		return;
+	}
+
+	if (p_property.name == sn.density) {
+		if (_emit_mode == EMIT_ONE_PER_TRIANGLE) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+		}
+		return;
+	}
+
+	if (_noise.is_null() && _noise_graph.is_null()) {
+		if (p_property.name == sn.noise_dimension) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+			return;
+		}
+
+		if (p_property.name == sn.noise_on_scale) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+			return;
+		}
+	}
+}
+
 #endif
 
 void VoxelInstanceGenerator::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_density", "density"), &VoxelInstanceGenerator::set_density);
-	ClassDB::bind_method(D_METHOD("get_density"), &VoxelInstanceGenerator::get_density);
+	using Self = VoxelInstanceGenerator;
 
-	ClassDB::bind_method(D_METHOD("set_emit_mode", "density"), &VoxelInstanceGenerator::set_emit_mode);
-	ClassDB::bind_method(D_METHOD("get_emit_mode"), &VoxelInstanceGenerator::get_emit_mode);
+	ClassDB::bind_method(D_METHOD("set_density", "density"), &Self::set_density);
+	ClassDB::bind_method(D_METHOD("get_density"), &Self::get_density);
 
-	ClassDB::bind_method(D_METHOD("set_min_scale", "min_scale"), &VoxelInstanceGenerator::set_min_scale);
-	ClassDB::bind_method(D_METHOD("get_min_scale"), &VoxelInstanceGenerator::get_min_scale);
+	ClassDB::bind_method(D_METHOD("set_emit_mode", "density"), &Self::set_emit_mode);
+	ClassDB::bind_method(D_METHOD("get_emit_mode"), &Self::get_emit_mode);
 
-	ClassDB::bind_method(D_METHOD("set_max_scale", "max_scale"), &VoxelInstanceGenerator::set_max_scale);
-	ClassDB::bind_method(D_METHOD("get_max_scale"), &VoxelInstanceGenerator::get_max_scale);
+	ClassDB::bind_method(D_METHOD("set_jitter", "jitter"), &Self::set_jitter);
+	ClassDB::bind_method(D_METHOD("get_jitter"), &Self::get_jitter);
 
-	ClassDB::bind_method(
-			D_METHOD("set_scale_distribution", "distribution"), &VoxelInstanceGenerator::set_scale_distribution
-	);
-	ClassDB::bind_method(D_METHOD("get_scale_distribution"), &VoxelInstanceGenerator::get_scale_distribution);
+	ClassDB::bind_method(D_METHOD("set_triangle_area_threshold", "threshold"), &Self::set_triangle_area_threshold);
+	ClassDB::bind_method(D_METHOD("get_triangle_area_threshold"), &Self::get_triangle_area_threshold);
 
-	ClassDB::bind_method(D_METHOD("set_vertical_alignment", "amount"), &VoxelInstanceGenerator::set_vertical_alignment);
-	ClassDB::bind_method(D_METHOD("get_vertical_alignment"), &VoxelInstanceGenerator::get_vertical_alignment);
+	ClassDB::bind_method(D_METHOD("set_min_scale", "min_scale"), &Self::set_min_scale);
+	ClassDB::bind_method(D_METHOD("get_min_scale"), &Self::get_min_scale);
 
-	ClassDB::bind_method(
-			D_METHOD("set_offset_along_normal", "offset"), &VoxelInstanceGenerator::set_offset_along_normal
-	);
-	ClassDB::bind_method(D_METHOD("get_offset_along_normal"), &VoxelInstanceGenerator::get_offset_along_normal);
+	ClassDB::bind_method(D_METHOD("set_max_scale", "max_scale"), &Self::set_max_scale);
+	ClassDB::bind_method(D_METHOD("get_max_scale"), &Self::get_max_scale);
 
-	ClassDB::bind_method(D_METHOD("set_min_slope_degrees", "degrees"), &VoxelInstanceGenerator::set_min_slope_degrees);
-	ClassDB::bind_method(D_METHOD("get_min_slope_degrees"), &VoxelInstanceGenerator::get_min_slope_degrees);
+	ClassDB::bind_method(D_METHOD("set_scale_distribution", "distribution"), &Self::set_scale_distribution);
+	ClassDB::bind_method(D_METHOD("get_scale_distribution"), &Self::get_scale_distribution);
 
-	ClassDB::bind_method(D_METHOD("set_max_slope_degrees", "degrees"), &VoxelInstanceGenerator::set_max_slope_degrees);
-	ClassDB::bind_method(D_METHOD("get_max_slope_degrees"), &VoxelInstanceGenerator::get_max_slope_degrees);
+	ClassDB::bind_method(D_METHOD("set_vertical_alignment", "amount"), &Self::set_vertical_alignment);
+	ClassDB::bind_method(D_METHOD("get_vertical_alignment"), &Self::get_vertical_alignment);
 
-	ClassDB::bind_method(D_METHOD("set_min_height", "height"), &VoxelInstanceGenerator::set_min_height);
-	ClassDB::bind_method(D_METHOD("get_min_height"), &VoxelInstanceGenerator::get_min_height);
+	ClassDB::bind_method(D_METHOD("set_offset_along_normal", "offset"), &Self::set_offset_along_normal);
+	ClassDB::bind_method(D_METHOD("get_offset_along_normal"), &Self::get_offset_along_normal);
 
-	ClassDB::bind_method(D_METHOD("set_max_height", "height"), &VoxelInstanceGenerator::set_max_height);
-	ClassDB::bind_method(D_METHOD("get_max_height"), &VoxelInstanceGenerator::get_max_height);
+	ClassDB::bind_method(D_METHOD("set_min_slope_degrees", "degrees"), &Self::set_min_slope_degrees);
+	ClassDB::bind_method(D_METHOD("get_min_slope_degrees"), &Self::get_min_slope_degrees);
 
-	ClassDB::bind_method(
-			D_METHOD("set_random_vertical_flip", "enabled"), &VoxelInstanceGenerator::set_random_vertical_flip
-	);
-	ClassDB::bind_method(D_METHOD("get_random_vertical_flip"), &VoxelInstanceGenerator::get_random_vertical_flip);
+	ClassDB::bind_method(D_METHOD("set_max_slope_degrees", "degrees"), &Self::set_max_slope_degrees);
+	ClassDB::bind_method(D_METHOD("get_max_slope_degrees"), &Self::get_max_slope_degrees);
 
-	ClassDB::bind_method(D_METHOD("set_random_rotation", "enabled"), &VoxelInstanceGenerator::set_random_rotation);
-	ClassDB::bind_method(D_METHOD("get_random_rotation"), &VoxelInstanceGenerator::get_random_rotation);
+	ClassDB::bind_method(D_METHOD("set_min_height", "height"), &Self::set_min_height);
+	ClassDB::bind_method(D_METHOD("get_min_height"), &Self::get_min_height);
 
-	ClassDB::bind_method(D_METHOD("set_noise", "noise"), &VoxelInstanceGenerator::set_noise);
-	ClassDB::bind_method(D_METHOD("get_noise"), &VoxelInstanceGenerator::get_noise);
+	ClassDB::bind_method(D_METHOD("set_max_height", "height"), &Self::set_max_height);
+	ClassDB::bind_method(D_METHOD("get_max_height"), &Self::get_max_height);
 
-	ClassDB::bind_method(D_METHOD("set_noise_graph", "graph"), &VoxelInstanceGenerator::set_noise_graph);
-	ClassDB::bind_method(D_METHOD("get_noise_graph"), &VoxelInstanceGenerator::get_noise_graph);
+	ClassDB::bind_method(D_METHOD("set_random_vertical_flip", "enabled"), &Self::set_random_vertical_flip);
+	ClassDB::bind_method(D_METHOD("get_random_vertical_flip"), &Self::get_random_vertical_flip);
 
-	ClassDB::bind_method(D_METHOD("set_noise_dimension", "dim"), &VoxelInstanceGenerator::set_noise_dimension);
-	ClassDB::bind_method(D_METHOD("get_noise_dimension"), &VoxelInstanceGenerator::get_noise_dimension);
+	ClassDB::bind_method(D_METHOD("set_random_rotation", "enabled"), &Self::set_random_rotation);
+	ClassDB::bind_method(D_METHOD("get_random_rotation"), &Self::get_random_rotation);
 
-	ClassDB::bind_method(D_METHOD("set_noise_on_scale", "amount"), &VoxelInstanceGenerator::set_noise_on_scale);
-	ClassDB::bind_method(D_METHOD("get_noise_on_scale"), &VoxelInstanceGenerator::get_noise_on_scale);
+	ClassDB::bind_method(D_METHOD("set_noise", "noise"), &Self::set_noise);
+	ClassDB::bind_method(D_METHOD("get_noise"), &Self::get_noise);
+
+	ClassDB::bind_method(D_METHOD("set_noise_graph", "graph"), &Self::set_noise_graph);
+	ClassDB::bind_method(D_METHOD("get_noise_graph"), &Self::get_noise_graph);
+
+	ClassDB::bind_method(D_METHOD("set_noise_dimension", "dim"), &Self::set_noise_dimension);
+	ClassDB::bind_method(D_METHOD("get_noise_dimension"), &Self::get_noise_dimension);
+
+	ClassDB::bind_method(D_METHOD("set_noise_on_scale", "amount"), &Self::set_noise_on_scale);
+	ClassDB::bind_method(D_METHOD("get_noise_on_scale"), &Self::get_noise_on_scale);
 
 	ADD_GROUP("Emission", "");
+
+	ADD_PROPERTY(
+			PropertyInfo(Variant::INT, "emit_mode", PROPERTY_HINT_ENUM, "Vertices,FacesFast,Faces,OnePerTriangle"),
+			"set_emit_mode",
+			"get_emit_mode"
+	);
 
 	ADD_PROPERTY(
 			PropertyInfo(Variant::FLOAT, "density", PROPERTY_HINT_RANGE, DENSITY_HINT_STRING),
 			"set_density",
 			"get_density"
 	);
+
 	ADD_PROPERTY(
-			PropertyInfo(Variant::INT, "emit_mode", PROPERTY_HINT_ENUM, "Vertices,FacesFast,Faces"),
-			"set_emit_mode",
-			"get_emit_mode"
+			PropertyInfo(Variant::FLOAT, "jitter", PROPERTY_HINT_RANGE, "0.0, 1.0, 0.01"), "set_jitter", "get_jitter"
 	);
+
+	ADD_PROPERTY(
+			PropertyInfo(Variant::FLOAT, "triangle_area_threshold", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.01"),
+			"set_triangle_area_threshold",
+			"get_triangle_area_threshold"
+	);
+
 	ADD_PROPERTY(
 			PropertyInfo(Variant::FLOAT, "min_slope_degrees", PROPERTY_HINT_RANGE, "0.0, 180.0, 0.1"),
 			"set_min_slope_degrees",
@@ -1030,6 +1183,7 @@ void VoxelInstanceGenerator::_bind_methods() {
 	BIND_ENUM_CONSTANT(EMIT_FROM_VERTICES);
 	BIND_ENUM_CONSTANT(EMIT_FROM_FACES_FAST);
 	BIND_ENUM_CONSTANT(EMIT_FROM_FACES);
+	BIND_ENUM_CONSTANT(EMIT_ONE_PER_TRIANGLE);
 	BIND_ENUM_CONSTANT(EMIT_MODE_COUNT);
 
 	BIND_ENUM_CONSTANT(DISTRIBUTION_LINEAR);

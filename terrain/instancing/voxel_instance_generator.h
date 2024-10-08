@@ -29,6 +29,7 @@ public:
 		EMIT_FROM_FACES_FAST,
 		// Slower, but tries to not assume the area of triangles.
 		EMIT_FROM_FACES,
+		EMIT_ONE_PER_TRIANGLE,
 
 		EMIT_MODE_COUNT
 	};
@@ -69,6 +70,12 @@ public:
 
 	void set_emit_mode(EmitMode mode);
 	EmitMode get_emit_mode() const;
+
+	void set_jitter(const float p_jitter);
+	float get_jitter() const;
+
+	void set_triangle_area_threshold(const float p_threshold);
+	float get_triangle_area_threshold() const;
 
 	void set_vertical_alignment(float valign);
 	float get_vertical_alignment() const;
@@ -127,6 +134,7 @@ public:
 
 #ifdef TOOLS_ENABLED
 	void get_configuration_warnings(PackedStringArray &warnings) const;
+	void _validate_property(PropertyInfo &p_property) const;
 #endif
 
 private:
@@ -136,6 +144,8 @@ private:
 	static void _bind_methods();
 
 	float _density = 0.1f;
+	float _jitter = 1.f;
+	float _triangle_area_threshold_lod0 = 0.f;
 	float _vertical_alignment = 1.f;
 	float _min_scale = 1.f;
 	float _max_scale = 1.f;

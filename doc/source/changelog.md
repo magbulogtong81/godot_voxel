@@ -12,6 +12,27 @@ Semver is not yet in place, so each version can have breaking changes, although 
 
 Primarily developped with Godot 4.3.
 
+- `VoxelBlockyModelCube`: Added support for mesh rotation like `VoxelBlockyMesh` (prior to that, rotation buttons in the editor only swapped tiles around)
+- `VoxelInstanceGenerator`: Added `OnePerTriangle` emission mode
+
+- Fixes
+    - Fixed potential deadlock when using detail rendering and various editing features (thanks to lenesxy, issue #693)
+    - `VoxelInstanceLibrary`: Editor: reworked the way items are exposed as a Blender-style list. Now removing an item while the library is open as a sub-inspector is no longer problematic
+    - `VoxelInstancer`: Fixed persistent instances reloading with wrong positions (in the air, underground...) when mesh block size is set to 32
+    - `VoxelLodTerrain`:
+        - Fixed potential crash when when using the Clipbox streaming system with threaded update (thanks to lenesxy, issue #692)
+        - Fixed blocks were saved with incorrect LOD index when they get unloaded using Clipbox, leading to holes and mismatched terrain (#691)
+        - Fixed incorrect loading of chunks near terrain borders when viewers are far away from bounds, when using the Clipbox streaming system
+    - `VoxelTerrain`: edits and copies across fixed bounds no longer behave as if terrain generates beyond (was causing "walls" to appear).
+    - `VoxelGeneratorGraph`: fix wrong values when using `OutputWeight` with optimized execution map enabled, when weights are determined to be locally constant
+    - `VoxelMesherTransvoxel`: revert texturing logic that attempted to prevent air voxels from contributing, but was lowering quality. It is now optional as an experimental property.
+    - `VoxelStreamSQLite`: Fixed "empty size" errors when loading areas with edited `VoxelInstancer` data
+
+- Breaking changes
+    - `VoxelInstanceLibrary`: Items should no longer be accessed using generated properties (`item1`, `item2` etc). Use `get_item` instead.
+    - `VoxelMesherTransvoxel`: Removed `deep_sampling` experimental option
+    - `VoxelTool`: The `flat_direction` of `do_hemisphere` now points away from the flat side of the hemisphere (like its normal), instead of pointing towards it
+
 
 1.3 - 17/08/2024 - branch `1.3` - tag `v1.3.0`
 ----------------------------------------------
